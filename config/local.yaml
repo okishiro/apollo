@@ -1,0 +1,5 @@
+env: dev
+storage_path: /Users/iwaili/api/storage/storage.db
+
+http_server:
+  address: localhost:8123
