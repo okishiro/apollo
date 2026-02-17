@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 	"time"
 
@@ -77,20 +76,8 @@ func Recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				// Get the stack trace (the last 2kb of it)
-				trace := make([]byte, 2048)
-				runtime.Stack(trace, false)
-
-				// Get the Request ID from the context (Layer 2)
-				reqID, _ := r.Context().Value("request_id").(string)
-
-				slog.Error("PANIC RECOVERED",
-					"request_id", reqID,
-					"err", err,
-					"stack", string(trace), // This tells you the line number!
-				)
-
-				w.WriteHeader(http.StatusInternalServerError)
+				slog.Error("PANIC RECOVERED", "err", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
 		next.ServeHTTP(w, r)
