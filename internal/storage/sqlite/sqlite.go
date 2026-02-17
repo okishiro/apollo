@@ -14,8 +14,6 @@ type SQL struct {
 	Db *sql.DB
 }
 
-//go doesnt have any constructor, so we make
-
 func New(cfg *config.Config) (*SQL, error) {
 	db, err := sql.Open("sqlite3", cfg.Storage_path)
 	if err != nil {
@@ -34,6 +32,11 @@ func New(cfg *config.Config) (*SQL, error) {
 
 }
 
+/*
+In Go, this s is called a Receiver. It is what makes this function a Method rather than a standalone function.
+Inm languages like Python, Java, or C#, s is the equivalent of self or this.
+By putting (s *SQL) before the function name, we are telling Go: "This function belongs to the SQL struct." we can only call this function if we have an instance of SQL.
+*/
 func (s *SQL) CreateAccount(name string) (int64, error) {
 	smt, err := s.Db.Prepare("INSERT INTO Accounts(name) VALUES(? )")
 	if err != nil {
@@ -71,41 +74,30 @@ func (s *SQL) CreateTable(id int64, path string) error {
 }
 
 func (s *SQL) CreateMovieEntry(accountname string, name string, today time.Time, comment string) (int64, error) {
-	// 1. Correctly retrieve the ID using QueryRow and Scan
-	fmt.Printf("uhh")
 	var accountID int64
 
 	// We use a '?' placeholder here to actually protect against SQL injection.
-	// Your previous code used fmt.Sprintf inside Prepare, which is not secure.
 	err := s.Db.QueryRow("SELECT id FROM Accounts WHERE name = ?", accountname).Scan(&accountID)
 	if err != nil {
 		return 0, fmt.Errorf("could not find account %s: %v", accountname, err)
 	}
 	fmt.Printf("uhh")
-	// 2. Now accountID is safely the integer you need (e.g., 3)
-	// We use Sprintf here because table names cannot be parameterized with '?'
-	// 1. Properly format the string using Sprintf
 	query := fmt.Sprintf("INSERT INTO well%d (name, today, comment) VALUES (?, ?, ?)", accountID)
-
-	// 2. Pass that finished string to Prepare
 	smt, err := s.Db.Prepare(query)
 	if err != nil {
-		// If you get Code 1 here now, it means the table 'well1' doesn't exist yet.
 		return 0, fmt.Errorf("prepare failed for table well%d: %w", accountID, err)
 	}
 	defer smt.Close()
 	fmt.Println(comment)
 	fmt.Println(name)
-	// 3. Execute with data
+
 	result, err := smt.Exec(name, today, comment)
 	if err != nil {
 		return 0, err
 	}
-	fmt.Printf("uhh")
 	return result.LastInsertId()
 }
 
-// 1. Change the return type to match the Interface
 func (s *SQL) Getmovies(id int64) ([]types.GetDataResponse, error) {
 	query := fmt.Sprintf("SELECT id, name, today, comment FROM well%d", id)
 
@@ -114,8 +106,6 @@ func (s *SQL) Getmovies(id int64) ([]types.GetDataResponse, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Printf("uhh")
-	// 2. Use the Storage struct here as well
 	var results []types.GetDataResponse
 
 	for rows.Next() {
@@ -129,25 +119,3 @@ func (s *SQL) Getmovies(id int64) ([]types.GetDataResponse, error) {
 
 	return results, nil
 }
-
-/*
-func (s *SQL) GetMovieByID(id int64) (types.Movie, error) {
-	smt, err := s.Db.Prepare("SELECT * FROM movies WHERE id=?") //to protect us from sql injections
-	if err != nil {
-		return types.Movie{}, err
-	}
-	defer smt.Close()
-
-	var moviee types.Movie
-
-	err = smt.QueryRow(id).Scan(&moviee.Id, &moviee.Name, &moviee.Rating)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return types.Movie{}, fmt.Errorf("NO MOVIE WITH THIS ID")
-		}
-		return types.Movie{}, fmt.Errorf("SOMETHING WRONG WITH RUNNING THE QUERY")
-	}
-
-	return moviee, nil
-}
-*/

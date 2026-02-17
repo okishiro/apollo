@@ -3,7 +3,6 @@ package one
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"log/slog"
@@ -22,7 +21,6 @@ func CreateMovie(datab Storage.Store) http.HandlerFunc { //pass the interface
 
 		var recieved types.Movie
 		accountname := r.PathValue("name")
-		slog.Info("creating ")
 		if accountname == "" {
 			http.Error(w, "name is required", http.StatusBadRequest)
 			return
@@ -40,7 +38,6 @@ func CreateMovie(datab Storage.Store) http.HandlerFunc { //pass the interface
 		}
 
 		today := time.Now().UTC().Truncate(24 * time.Hour)
-		fmt.Printf("%s helllo", recieved.Name)
 		lastid, err := datab.CreateMovieEntry(
 			accountname,
 			recieved.Name,
@@ -48,14 +45,12 @@ func CreateMovie(datab Storage.Store) http.HandlerFunc { //pass the interface
 			recieved.Comment,
 		)
 		if err != nil {
-			slog.Error("Database Error", "details", err.Error()) // This will print the actual "no such table" message
+			slog.Error("Database Error", "details", err.Error())
 			response.WriteJson(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// slog.Info(message, key, value)
-		fmt.Printf("%s cmmmon", recieved.Comment)
-		slog.Info("creating an entry", "id", lastid)
+		slog.Info("creating an entry for %s with id - %v", accountname, lastid)
 		response.WriteJson(w, http.StatusCreated, "")
 	}
 }
@@ -77,8 +72,6 @@ func GetData(datab Storage.Store) http.HandlerFunc {
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
-
-		// Send JSON response
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(data)
 
@@ -92,19 +85,6 @@ func CreateAccount(datab Storage.Store, path string) http.HandlerFunc {
 			http.Error(w, "name is required", http.StatusBadRequest)
 			return
 		}
-		/*
-			err := json.NewDecoder(r.Body).Decode(&recieved)
-			if errors.Is(err, io.EOF) {
-				response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
-				return
-			}
-
-			if err := validator.New().Struct(recieved); err != nil {
-				validateError := err.(validator.ValidationErrors)
-				response.WriteJson(w, http.StatusBadRequest, response.ValidationErrors(validateError))
-				return
-			}
-		*/
 
 		lastid, err := datab.CreateAccount(
 			name,
