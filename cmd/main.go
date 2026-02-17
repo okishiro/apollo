@@ -32,7 +32,7 @@ func main() {
 	router := http.NewServeMux()
 
 	router.HandleFunc("POST /movie/{name}", one.CreateMovie(database))
-	//router.HandleFunc("GET /getdata/{id}", one.GetData(storee))
+	router.HandleFunc("GET /getdata/{id}", one.GetData(database))
 	router.HandleFunc("POST /create/{name}", one.CreateAccount(database, cfg.Storage_path))
 
 	server := http.Server{

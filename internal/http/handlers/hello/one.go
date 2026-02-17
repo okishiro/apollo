@@ -3,10 +3,12 @@ package one
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -38,41 +40,50 @@ func CreateMovie(datab Storage.Store) http.HandlerFunc { //pass the interface
 		}
 
 		today := time.Now().UTC().Truncate(24 * time.Hour)
-
-		lastid, err := datab.CreateMovie(
+		fmt.Printf("%s helllo", recieved.Name)
+		lastid, err := datab.CreateMovieEntry(
 			accountname,
 			recieved.Name,
 			today,
 			recieved.Comment,
 		)
-
 		if err != nil {
-			response.WriteJson(w, http.StatusInternalServerError, err)
+			slog.Error("Database Error", "details", err.Error()) // This will print the actual "no such table" message
+			response.WriteJson(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
 		// slog.Info(message, key, value)
-		slog.Info("creating an account", "id", lastid)
+		fmt.Printf("%s cmmmon", recieved.Comment)
+		slog.Info("creating an entry", "id", lastid)
 		response.WriteJson(w, http.StatusCreated, "")
 	}
 }
 
-/*
-func GGetmovie(datab Storage.Store) http.HandlerFunc {
+func GetData(datab Storage.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		//slog.Info("getting info of movie with id %v", id)
-
-		intid, err := strconv.ParseInt(id, 10, 64)
-		moviee, err := datab.GetMovieByID(intid)
+		idstr := r.PathValue("id")
+		if idstr == "" {
+			http.Error(w, "id is required", http.StatusBadRequest)
+			return
+		}
+		id, err := strconv.ParseInt(idstr, 10, 64)
 		if err != nil {
-			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			http.Error(w, "Invalid ID format: must be a number", http.StatusBadRequest)
+			return
+		}
+		data, err := datab.Getmovies(id)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
 		}
 
-		response.WriteJson(w, http.StatusOK, moviee)
+		// Send JSON response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(data)
+
 	}
 }
-*/
 
 func CreateAccount(datab Storage.Store, path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
